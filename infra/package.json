@@ -1,0 +1,27 @@
+{
+  "name": "stephenc.info-image-compression-pipeline",
+  "version": "0.1.0",
+  "bin": {
+    "infra": "bin/infra.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "bootstrap": "sh build.sh && cdk bootstrap",
+    "diff": "sh build.sh && cdk diff",
+    "deploy": "sh build.sh && cdk deploy"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "20.11.16",
+    "aws-cdk": "2.164.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.3.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.164.0",
+    "constructs": "^10.0.0",
+    "source-map-support": "^0.5.21"
+  }
+}
