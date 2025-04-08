@@ -13,12 +13,28 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
       bucketName: "stephenc.info-source-bucket",
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      versioned: true,
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(1),
+          noncurrentVersionExpiration: cdk.Duration.days(1),
+        },
+      ],
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
     const destinationBucket = new s3.Bucket(this, "DestinationBucket", {
       bucketName: "stephenc.info-destination-bucket",
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      versioned: true,
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(7),
+          noncurrentVersionExpiration: cdk.Duration.days(7),
+        },
+      ],
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
     const compressImageLambda = new lambda.Function(
@@ -27,14 +43,16 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
       {
         functionName: "stephenc-info-compress-image-lambda",
         runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "compress_image.handler",
-        timeout: cdk.Duration.seconds(30),
+        handler: "index.handler",
+        timeout: cdk.Duration.seconds(60),
+        memorySize: 1024,
         retryAttempts: 2,
         code: lambda.Code.fromAsset(
-          path.join(__dirname, "../../services/lambdas")
+          path.join(__dirname, "../../services/lambdas/dist")
         ),
         environment: {
           DESTINATION_BUCKET: destinationBucket.bucketName,
+          NODE_OPTIONS: "--max-old-space-size=512",
         },
         logRetention: logs.RetentionDays.ONE_WEEK,
       }
@@ -45,7 +63,20 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
 
     sourceBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
-      new s3n.LambdaDestination(compressImageLambda)
+      new s3n.LambdaDestination(compressImageLambda),
+      {
+        prefix: "images/",
+      }
     );
+
+    new cdk.CfnOutput(this, "SourceBucketName", {
+      value: sourceBucket.bucketName,
+      description: "Name of the source bucket",
+    });
+
+    new cdk.CfnOutput(this, "DestinationBucketName", {
+      value: destinationBucket.bucketName,
+      description: "Name of the destination bucket",
+    });
   }
 }

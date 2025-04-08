@@ -10,3 +10,6 @@ cdk.out
 
 *.zip
 .DS_Store
+
+# AWS Lambda
+dist
