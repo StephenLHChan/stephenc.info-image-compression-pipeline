@@ -3,6 +3,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as path from "path";
 
 export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
@@ -30,7 +31,6 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
       versioned: true,
       lifecycleRules: [
         {
-          expiration: cdk.Duration.days(7),
           noncurrentVersionExpiration: cdk.Duration.days(7),
         },
       ],
@@ -68,6 +68,25 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
         prefix: "images/",
       }
     );
+
+    const homepageUser = new iam.User(this, "HomepageUser", {
+      userName: "stephenc-info-homepage-user",
+    });
+
+    const bucketPolicy = new iam.Policy(this, "HomepageUserBucketPolicy", {
+      statements: [
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: ["s3:GetObject", "s3:ListBucket"],
+          resources: [
+            destinationBucket.bucketArn,
+            `${destinationBucket.bucketArn}/*`,
+          ],
+        }),
+      ],
+    });
+
+    bucketPolicy.attachToUser(homepageUser);
 
     new cdk.CfnOutput(this, "SourceBucketName", {
       value: sourceBucket.bucketName,
