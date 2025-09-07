@@ -1,0 +1,27 @@
+{
+  "name": "stephenc-info-image-compression-pipeline",
+  "version": "1.0.0",
+  "description": "AWS Image Compression Pipeline with CDK and Lambda",
+  "scripts": {
+    "deploy": "./scripts/deploy.sh deploy",
+    "cleanup": "./scripts/deploy.sh cleanup",
+    "build-lambda": "./scripts/deploy.sh build-lambda",
+    "deploy-infra": "./scripts/deploy.sh deploy-infra",
+    "test": "cd services/lambdas && npm test",
+    "build": "cd services/lambdas && npm run build",
+    "install": "cd services/lambdas && npm install && cd ../../infra && npm install"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "lambda",
+    "s3",
+    "image-compression",
+    "sharp"
+  ],
+  "author": "Stephen C",
+  "license": "MIT",
+  "devDependencies": {
+    "aws-cdk": "^2.100.0"
+  }
+}

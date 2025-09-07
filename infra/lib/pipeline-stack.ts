@@ -5,13 +5,14 @@ import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as path from "path";
+import { IAMPolicies } from "./iam-policies";
 
 export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const sourceBucket = new s3.Bucket(this, "SourceBucket", {
-      bucketName: "stephenc.info-source-bucket",
+      bucketName: "stephenc-dev-photos-raw",
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       versioned: true,
@@ -25,7 +26,7 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
     });
 
     const destinationBucket = new s3.Bucket(this, "DestinationBucket", {
-      bucketName: "stephenc.info-destination-bucket",
+      bucketName: "stephenc-dev-photos",
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       versioned: true,
@@ -35,13 +36,29 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
         },
       ],
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      cors: [
+        {
+          allowedHeaders: ["*"],
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.HEAD],
+          allowedOrigins: ["*"],
+          exposedHeaders: ["ETag"],
+        },
+      ],
     });
+
+    // Create IAM role for Lambda
+    const lambdaRole = IAMPolicies.createLambdaExecutionRole(
+      this,
+      "CompressImageLambdaRole",
+      sourceBucket,
+      destinationBucket
+    );
 
     const compressImageLambda = new lambda.Function(
       this,
       "CompressImageLambda",
       {
-        functionName: "stephenc-info-compress-image-lambda",
+        functionName: "stephenc-dev-compress-image",
         runtime: lambda.Runtime.NODEJS_20_X,
         handler: "index.handler",
         timeout: cdk.Duration.seconds(60),
@@ -55,36 +72,27 @@ export class StephencInfoImageCompressionPipelineStack extends cdk.Stack {
           NODE_OPTIONS: "--max-old-space-size=512",
         },
         logRetention: logs.RetentionDays.ONE_WEEK,
+        role: lambdaRole,
       }
     );
-
-    sourceBucket.grantRead(compressImageLambda);
-    destinationBucket.grantWrite(compressImageLambda);
 
     sourceBucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
       new s3n.LambdaDestination(compressImageLambda),
       {
-        prefix: "images/",
+        prefix: "photos/",
       }
     );
 
     const homepageUser = new iam.User(this, "HomepageUser", {
-      userName: "stephenc-info-homepage-user",
+      userName: "stephenc-dev-homepage-user",
     });
 
-    const bucketPolicy = new iam.Policy(this, "HomepageUserBucketPolicy", {
-      statements: [
-        new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          actions: ["s3:GetObject", "s3:ListBucket"],
-          resources: [
-            destinationBucket.bucketArn,
-            `${destinationBucket.bucketArn}/*`,
-          ],
-        }),
-      ],
-    });
+    const bucketPolicy = IAMPolicies.createHomepageUserPolicy(
+      this,
+      "HomepageUserBucketPolicy",
+      destinationBucket
+    );
 
     bucketPolicy.attachToUser(homepageUser);
 

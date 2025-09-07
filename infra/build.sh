@@ -1,2 +1,3 @@
 cd ../services/lambdas
-npm install
+npm ci
+npm run deploy

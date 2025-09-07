@@ -6,7 +6,7 @@ import { StephencInfoImageCompressionPipelineStack } from "../lib/pipeline-stack
 const app = new cdk.App();
 new StephencInfoImageCompressionPipelineStack(
   app,
-  "StephencInfoImageCompressionPipelineStack",
+  "StephencDevImageCompressionPipelineStack",
   {
     env: {
       account: process.env.CDK_DEFAULT_ACCOUNT,
